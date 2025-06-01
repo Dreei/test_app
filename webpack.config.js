@@ -27,7 +27,6 @@ module.exports = [
             fallback: {
                 crypto: require.resolve('crypto-browserify'),
                 stream: require.resolve('stream-browserify'), // sometimes needed for crypto deps
-                buffer: require.resolve('buffer/'), // sometimes needed for crypto deps
             },
             extensions: ['*', '.js', '.jsx'],
         },
@@ -90,10 +89,6 @@ module.exports = [
             filename: 'bundle.js',
         },
         plugins: [
-            new webpack.ProvidePlugin({
-                Buffer: ['buffer', 'Buffer'],
-                process: 'process/browser',
-            }),
             new DotenvPlugin({
                 path: './server/.env',
             }),
