@@ -38,7 +38,7 @@ export async function start(app, port) {
                 throw error;
         }
     });
-
+    console.log(`Starting ${appName} server on port ${port}`);
     // Listen on provided port, on all network interfaces
     return server.listen(port);
 }

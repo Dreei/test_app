@@ -10,8 +10,22 @@ const router = express.Router();
  */
 router.get('/', session, async (req, res) => {
     const { url, state, verifier } = getInstallURL();
-    req.session.state = state;
-    req.session.verifier = verifier;
+
+    // Still keep state in the (tiny) session object if you want:
+    req.session = { state };
+
+    /*  🔑  Put the verifier in its own signed, HttpOnly cookie.
+      - 10 min expiry is plenty for the auth round-trip.
+      - SameSite=None + Secure so Zoom (cross-site) can send the cookie back. */
+    res.cookie('zoom_verifier', verifier, {
+        httpOnly: true,
+        secure: true, // HTTPS only  (ngrok or a real cert)
+        sameSite: 'none', // allow cross-site redirect from zoom.us
+        signed: true, // verifier can’t be tampered with
+        maxAge: 10 * 60 * 1000, // 10 minutes
+    });
+    console.log('res.getHeaders()', res.getHeaders());
+    console.log('Set verifier cookie, redirecting to', url.href);
     res.redirect(url.href);
 });
 

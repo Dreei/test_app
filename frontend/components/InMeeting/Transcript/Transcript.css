@@ -1,25 +1,84 @@
 .InMeeting-transcript {
-    height: 40%;
-    padding: 0 1rem;
-    background: #eee;
-    overflow: auto;
-    font-size: 1rem;
-    margin-bottom: 1rem;
-    border-radius: 0.25rem;
+    height: 100%;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
 }
 
-.InMeeting h3 {
-    width: 100%;
-    margin: 0.5rem 0;
-    padding: 0;
+.transcript-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #6c757d;
+    font-style: italic;
     text-align: center;
-    font-size: 0.75rem;
-    font-weight: 300;
+}
+
+.transcript-entry {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-left: 3px solid #007bff;
+}
+
+.transcript-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid #e9ecef;
 }
 
 .InMeeting-transcript-speaker {
-    display: block;
+    font-weight: bold;
+    color: #007bff;
+    font-size: 0.9rem;
+}
+
+.transcript-timestamp {
     font-size: 0.75rem;
-    font-style: italic;
-    margin-bottom: 0.25rem;
+    color: #6c757d;
+    font-family: monospace;
+}
+
+.transcript-text {
+    line-height: 1.5;
+    color: #212529;
+    word-wrap: break-word;
+}
+
+/* Scrollbar styling */
+.InMeeting-transcript::-webkit-scrollbar {
+    width: 6px;
+}
+
+.InMeeting-transcript::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.InMeeting-transcript::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.InMeeting-transcript::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Host indicator */
+.transcript-entry.host {
+    border-left-color: #ffc107;
+}
+
+.host-badge {
+    font-weight: normal;
+    color: #ffc107;
+    font-size: 0.8rem;
 }

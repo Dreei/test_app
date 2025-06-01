@@ -12,7 +12,7 @@ const base64URL = (s) =>
         .replace(/\//g, '_')
         .replace(/=/g, '');
 
-// returns a random string of format fmt
+// eslint-disable-next-line
 const rand = (fmt, depth = 32) => crypto.randomBytes(depth).toString(fmt);
 
 // Get Zoom API URL from Zoom Host value
@@ -70,27 +70,32 @@ function apiRequest(method, endpoint, token, data = null) {
  * @return {{verifier: string, state: string, url: module:url.URL}}
  */
 export function getInstallURL() {
-    const state = rand('base64');
-    const verifier = rand('ascii');
+    const state = base64URL(crypto.randomBytes(24));
+    const verifier = base64URL(crypto.randomBytes(32));
+
+    console.log('Zoom PKCE Verifier:', verifier);
+    console.log('Zoom PKCE State:', state);
+
+    const payload = Buffer.from(JSON.stringify({ state, verifier })).toString(
+        'base64url'
+    );
 
     const digest = crypto
         .createHash('sha256')
         .update(verifier)
-        .digest('base64')
-        .toString();
+        .digest('base64');
 
     const challenge = base64URL(digest);
 
     const url = new URL('/oauth/authorize', zoomApp.host);
-
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', zoomApp.clientId);
     url.searchParams.set('redirect_uri', zoomApp.redirectUrl);
     url.searchParams.set('code_challenge', challenge);
     url.searchParams.set('code_challenge_method', 'S256');
-    url.searchParams.set('state', state);
+    url.searchParams.set('state', payload); // 🟢 Packed payload
 
-    return { url, state, verifier };
+    return { url };
 }
 
 /**

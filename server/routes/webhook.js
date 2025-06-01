@@ -10,10 +10,12 @@ const router = express.Router();
  * Receives transcription webhooks from the Recall Bot
  * @see https://recallai.readme.io/reference/webhook-reference#real-time-transcription
  */
-router.post('/transcription', async (req, res, next) => {
+router.post('/transcription', express.json(), async (req, res, next) => {
     try {
         sanitize(req);
-
+        if (req.body.event !== 'transcript.data') {
+            return res.status(200).json({ success: true });
+        }
         if (
             !crypto.timingSafeEqual(
                 Buffer.from(req.query.secret, 'utf8'),
@@ -22,16 +24,14 @@ router.post('/transcription', async (req, res, next) => {
         ) {
             return res.status(401).json({ error: 'Unauthorized' });
         }
-
-        console.log('transcription webhook received: ', req.body);
-
-        const { bot_id, transcript } = req.body.data;
+        const transcript = req.body.data.data;
+        const bot_id = req.body.data.bot.id;
 
         if (!db.transcripts[bot_id]) {
             db.transcripts[bot_id] = [];
         }
-
         db.transcripts[bot_id].push(transcript);
+        console.log('Current transcripts', db.transcripts[bot_id]);
         res.status(200).json({ success: true });
     } catch (e) {
         next(handleError(e));

@@ -2,36 +2,362 @@
     display: flex;
     flex-direction: column;
     height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
-.InMeeting h1 {
-    text-align: center;
-    font-size: 1.5rem;
-    font-weight: 300;
+.InMeeting-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.InMeeting-header h1 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.recording-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #6b7280;
+}
+
+.status-indicator.recording {
+    background-color: #ef4444;
+    animation: pulse 2s infinite;
+}
+
+.status-indicator.stopped {
+    background-color: #6b7280;
+}
+
+.status-indicator.waiting {
+    background-color: #f59e0b;
+}
+
+.status-indicator.error {
+    background-color: #dc2626;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.status-text {
+    font-weight: 500;
+    color: #374151;
+}
+
+.InMeeting-content {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+    min-height: 0; /* Important for flex children */
+}
+
+.InMeeting-main {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.InMeeting-sidebar {
+    flex: 1;
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.transcript-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-bottom: 20px;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.section-header h3 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 1.25rem;
+}
+
+.transcript-count {
+    font-size: 0.875rem;
+    color: #6b7280;
+    background-color: #f3f4f6;
+    padding: 4px 8px;
+    border-radius: 12px;
+}
+
+.transcript-container {
+    flex: 1;
+    min-height: 200px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.InMeeting-transcript {
+    height: 100%;
+    overflow-y: auto;
+    padding: 16px;
+    background-color: #f9fafb;
+}
+
+.InMeeting-transcript p {
+    margin-bottom: 12px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.InMeeting-transcript-speaker {
+    font-weight: 600;
+    color: #1f2937;
+    margin-right: 8px;
 }
 
 .InMeeting-record {
-    text-align: center;
-    margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
+    margin-top: auto;
 }
 
-.InMeeting button {
-    margin: 0 auto;
-    padding: 0.5rem 1rem;
-    border: 1px solid #4192a8;
-    border-radius: 0.25rem;
-    background-color: #4192a8;
-    color: #fff;
+.record-button {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
     font-size: 1rem;
-    font-weight: 300;
+    font-weight: 500;
     cursor: pointer;
-    width: 100%;
+    transition: all 0.2s;
+    min-width: 200px;
 }
 
-.InMeeting button:disabled {
-    opacity: 0.5;
+.record-button:hover:not(:disabled) {
+    background-color: #2563eb;
+    transform: translateY(-1px);
+}
+
+.record-button:disabled {
+    background-color: #9ca3af;
     cursor: not-allowed;
+    transform: none;
+}
+
+.record-button.recording {
+    background-color: #ef4444;
+}
+
+.record-button.recording:hover:not(:disabled) {
+    background-color: #dc2626;
+}
+
+.record-button.error {
+    background-color: #dc2626;
+}
+
+/* Summary Styles */
+.InMeeting-summary {
+    background-color: white;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    overflow: hidden;
+    height: fit-content;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.summary-header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f8fafc;
+}
+
+.summary-header h3 {
+    margin: 0 0 16px 0;
+    color: #1f2937;
+    font-size: 1.25rem;
+}
+
+.summary-controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.summary-select {
+    flex: 1;
+    min-width: 150px;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: white;
+    font-size: 0.875rem;
+}
+
+.summary-button {
+    background-color: #10b981;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.summary-button:hover:not(:disabled) {
+    background-color: #059669;
+}
+
+.summary-button:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.summary-button.error {
+    background-color: #ef4444;
+}
+
+.summary-content {
+    padding: 20px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.summary-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid #e5e7eb;
+    border-top: 3px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.summary-error {
+    padding: 16px;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.error-message {
+    color: #dc2626;
+    margin: 0;
+    font-weight: 500;
+}
+
+.summary-result {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.summary-type {
+    color: #1e40af;
+    margin-bottom: 12px;
+    font-size: 0.875rem;
+}
+
+.summary-text {
+    color: #374151;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.summary-text p {
+    margin-bottom: 8px;
+}
+
+.summary-text p:last-child {
+    margin-bottom: 0;
+}
+
+.summary-timestamp {
+    font-size: 0.75rem;
+    color: #6b7280;
+    text-align: right;
+    font-style: italic;
+}
+
+.summary-placeholder {
+    text-align: center;
+    color: #6b7280;
+    padding: 40px 20px;
+}
+
+.summary-placeholder p {
+    margin: 0;
+    font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .InMeeting {
+        padding: 12px;
+    }
+    
+    .InMeeting-content {
+        flex-direction: column;
+        gap: 16px;
+    }
+    
+    .InMeeting-sidebar {
+        min-width: unset;
+        max-width: none;
+    }
+    
+    .summary-controls {
+        flex-direction: column;
+    }
+    
+    .summary-select {
+        min-width: unset;
+    }
 }

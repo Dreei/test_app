@@ -13,15 +13,19 @@ import installRoutes from './routes/install.js';
 import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import webhookRoutes from './routes/webhook.js';
-
-import { appName, port } from './config.js';
+import { appName, port, zoomApp } from './config.js';
 import headers from './headers.js';
-
+// eslint-disable-next-line
+import {
+    initWebSocketServer,
+    closeWebSocketServer,
+} from './routes/websocket.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /* App Config */
 const app = express();
 const dbg = debug(`${appName}:app`);
+app.use(express.json({ limit: '10mb' }));
 
 // frontend
 const staticDir = `${__dirname}/../dist/frontend`;
@@ -29,6 +33,8 @@ const staticDir = `${__dirname}/../dist/frontend`;
 // HTTP
 app.set('port', port);
 app.set('trust proxy', true);
+app.use(cookieParser(zoomApp.sessionSecret)); // signed cookies
+
 // log Axios requests and responses
 const logFunc = (r) => {
     if (process.env.NODE_ENV !== 'production') {
@@ -52,7 +58,6 @@ axios.interceptors.response.use(logFunc);
 
 app.use(helmet(headers));
 
-app.use(express.json());
 app.use(compression());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: false }));
@@ -66,6 +71,13 @@ app.use('/install', installRoutes);
 app.use('/api', apiRoutes);
 app.use('/auth', authRoutes);
 app.use('/webhook', webhookRoutes);
+
+app.get('/health', (req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        message: 'Server is running',
+    });
+});
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
@@ -85,9 +97,6 @@ app.use((err, req, res, next) => {
         message: err.message,
     });
 });
-
-// redirect users to the home page if they get a 404 route
-app.get('*', (req, res) => res.redirect('/'));
 
 // start serving
 start(app, port).catch(async (e) => {

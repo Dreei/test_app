@@ -6,7 +6,7 @@ import { recallFetch } from '../helpers/recall.js';
 import session from '../session.js';
 import { zoomApp } from '../config.js';
 import db from '../helpers/database.js';
-import { anthropicFetch } from '../helpers/anthropic.js';
+import { hfFetch } from '../helpers/huggingface.js'; // at top of file
 
 const router = express.Router();
 
@@ -59,12 +59,25 @@ router.post('/start-recording', session, async (req, res, next) => {
             body: JSON.stringify({
                 bot_name: `${process.env.BOT_NAME} Notetaker`,
                 meeting_url: req.body.meetingUrl,
-                transcription_options: {
-                    provider: 'default',
-                },
-                real_time_transcription: {
-                    destination_url: `${zoomApp.publicUrl}/webhook/transcription?secret=${zoomApp.webhookSecret}`,
-                    partial_results: true,
+                recording_config: {
+                    realtime_endpoints: [
+                        {
+                            type: 'webhook',
+                            url: `${zoomApp.publicUrl}/webhook/transcription?secret=${zoomApp.webhookSecret}`,
+                            events: [
+                                'transcript.partial_data',
+                                'transcript.data',
+                                'participant_events.chat_message',
+                            ],
+                        },
+                    ],
+                    transcript: {
+                        provider: {
+                            speechmatics_streaming: {
+                                language: 'en',
+                            },
+                        },
+                    },
                 },
                 zoom: {
                     request_recording_permission_on_host_join: true,
@@ -99,7 +112,6 @@ router.post('/start-recording', session, async (req, res, next) => {
             }),
         });
 
-        console.log('recall bot', bot);
         req.session.botId = bot.id;
 
         return res.json({
@@ -114,6 +126,7 @@ router.post('/start-recording', session, async (req, res, next) => {
  * Tells the Recall Bot to stop recording the call
  */
 router.post('/stop-recording', session, async (req, res, next) => {
+    console.log(req.session);
     try {
         sanitize(req);
         validateAppContext(req);
@@ -151,7 +164,6 @@ router.get('/recording-state', session, async (req, res, next) => {
             method: 'GET',
         });
         const latestStatus = bot.status_changes.slice(-1)[0].code;
-
         return res.json({
             state: latestStatus,
             transcript: db.transcripts[botId] || [],
@@ -162,19 +174,16 @@ router.get('/recording-state', session, async (req, res, next) => {
 });
 
 const PROMPTS = {
-    _template: `
-Human: You are a virtual assistant, and you are taking notes for a meeting. 
-You are diligent, polite and slightly humerous at times.
-Human: Here is the a transcript of the meeting, including the speaker's name:
+    _template: `You are a virtual assistant taking notes for a meeting. You are diligent, polite and slightly humorous at times.
 
-Human: <transcript>
+Here is the transcript of the meeting, including the speaker's name:
+
+<transcript>
 {{transcript}}
-Human: </transcript>
+</transcript>
 
-Human: Only answer the following question directly, do not add any additional comments or information.
-Human: {{prompt}}
-
-Assistant:`,
+Only answer the following question directly, do not add any additional comments or information.
+{{prompt}}`,
     general_summary: 'Can you summarize the meeting? Please be concise.',
     action_items: 'What are the action items from the meeting?',
     decisions: 'What decisions were made in the meeting?',
@@ -202,33 +211,100 @@ router.post('/summarize', session, async (req, res, next) => {
         }
 
         const transcript = db.transcripts[botId] || [];
-        const finalTranscript = transcript
-            .filter((utterance) => utterance.is_final)
-            .map(
-                (utterance) =>
-                    `Human: ${utterance.speaker || 'Unknown'}: ${utterance.words
-                        .map((w) => w.text)
-                        .join(' ')}`
-            )
+
+        // Process transcript chronologically using timestamps
+        const allWords = [];
+
+        transcript.forEach((utterance) => {
+            const speakerName = utterance.participant?.name || 'Unknown';
+            const words = utterance.words || [];
+
+            words.forEach((word) => {
+                allWords.push({
+                    text: word.text,
+                    speaker: speakerName,
+                    timestamp: word.start_timestamp?.relative || 0,
+                    is_final: utterance.is_final,
+                });
+            });
+        });
+
+        // Sort by timestamp for chronological order
+        allWords.sort((a, b) => a.timestamp - b.timestamp);
+        console.log('allWords', allWords);
+
+        // Handle case where is_final might be undefined
+        // Use all words if no final words are available, otherwise use only final words
+        const finalWords = allWords.filter((word) => word.is_final === true);
+        const wordsToProcess = finalWords.length > 0 ? finalWords : allWords;
+
+        console.log('wordsToProcess length:', wordsToProcess.length);
+
+        // Group consecutive words from same speaker
+        const groupedTranscript = [];
+        let currentSpeaker = null;
+
+        wordsToProcess.forEach((word) => {
+            if (word.speaker !== currentSpeaker) {
+                currentSpeaker = word.speaker;
+                groupedTranscript.push({
+                    speaker: currentSpeaker,
+                    words: [word.text],
+                });
+            } else {
+                groupedTranscript[groupedTranscript.length - 1].words.push(
+                    word.text
+                );
+            }
+        });
+
+        console.log('groupedTranscript====================', groupedTranscript);
+
+        // Check if we have any transcript data
+        if (groupedTranscript.length === 0) {
+            return res.json({
+                summary: 'No transcript data available to summarize.',
+                warning:
+                    'The meeting transcript appears to be empty or incomplete.',
+            });
+        }
+
+        // Format for AI prompt
+        const finalTranscript = groupedTranscript
+            .map((item) => `${item.speaker}: ${item.words.join(' ')}`)
             .join('\n');
+
+        console.log('finalTranscript', finalTranscript);
+
+        // Additional check for empty transcript
+        if (!finalTranscript.trim()) {
+            return res.json({
+                summary: 'No meaningful transcript content found to summarize.',
+                warning:
+                    'The transcript appears to contain only empty or invalid entries.',
+            });
+        }
+
         const completePrompt = PROMPTS._template
             .replace('{{transcript}}', finalTranscript)
             .replace('{{prompt}}', prompt);
 
         console.log('completePrompt', completePrompt);
 
-        const data = await anthropicFetch('/v1/complete', {
-            method: 'POST',
-            body: JSON.stringify({
-                model: 'claude-2',
-                prompt: completePrompt,
-                max_tokens_to_sample: 1024,
-            }),
-        });
+        const completion = await hfFetch(completePrompt);
 
-        return res.json({
-            summary: data.completion,
-        });
+        // Clean up the response - remove the original prompt and any thinking tags
+        let cleanSummary = completion.replace(completePrompt, '').trim();
+
+        // Remove any <think> tags and their content
+        cleanSummary = cleanSummary
+            .replace(/<think>[\s\S]*?<\/think>/gi, '')
+            .trim();
+
+        // Remove any leading/trailing whitespace or newlines
+        cleanSummary = cleanSummary.replace(/^\s+|\s+$/g, '');
+
+        return res.json({ summary: cleanSummary });
     } catch (e) {
         next(handleError(e));
     }
