@@ -9,6 +9,7 @@ const validateEnv = (name, val) => {
     }
 };
 
+console.log('PUBLIC_URL', process.env.PUBLIC_URL);
 validateEnv('ZM_CLIENT_ID', process.env.ZM_CLIENT_ID);
 validateEnv('ZM_CLIENT_SECRET', process.env.ZM_CLIENT_SECRET);
 validateEnv('PUBLIC_URL', process.env.PUBLIC_URL);
